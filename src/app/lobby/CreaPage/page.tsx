@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { getAllRooms, createRoom } from "@/lib/gameRoom";
 
 export default function CrePage() {
   const [rooms, setRooms] = useState<any[]>([]);
+  const router = useRouter();
 
   useEffect(() => {
     getAllRooms()
@@ -16,6 +18,7 @@ export default function CrePage() {
     try {
       const newRoom = await createRoom({ name: "Nueva Sala", maxPlayers: 4 });
       setRooms([...rooms, newRoom]);
+      router.push("/gameScreen");
     } catch (err) {
       console.error("Error creando sala:", err);
     }
@@ -46,7 +49,7 @@ export default function CrePage() {
 
       {/* ====== Contenedor inferior ====== */}
       <div className="pb-16 flex flex-col items-center space-y-8 w-full max-w-md">
-        {/* Botón crear sala */}
+        {/* Botón de iniciar partida */}
         <button
           onClick={handleCreateRoom}
           className="w-72 px-8 py-4 bg-gradient-to-b from-yellow-600 to-yellow-800
@@ -54,7 +57,7 @@ export default function CrePage() {
                      hover:from-yellow-500 hover:to-yellow-700 hover:scale-105 transition-all duration-300
                      focus:outline-none focus:ring-4 focus:ring-yellow-300"
         >
-          Crear Sala
+          Iniciar partida
         </button>
 
         {/* Lista de salas */}

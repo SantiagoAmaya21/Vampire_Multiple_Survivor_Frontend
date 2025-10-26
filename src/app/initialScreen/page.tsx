@@ -31,7 +31,6 @@ export default function InitialScreen() {
       <div className="pb-20 flex flex-col items-center space-y-8">
         {/* Botón Crear partida */}
         <button
-          // 👇 Esta ruta debe coincidir con la carpeta: src/app/lobby/CreaPage/page.tsx
           onClick={() => router.push("/lobby/CreaPage")}
           className="w-72 px-8 py-4 bg-gradient-to-b from-green-700 to-green-900
                      text-white text-2xl font-bold rounded-2xl border-4 border-black
