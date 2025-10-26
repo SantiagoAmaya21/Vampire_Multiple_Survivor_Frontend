@@ -1,3 +1,4 @@
+// src/lib/api.ts
 export const API_URL = "http://localhost:8080";
 
 export async function apiFetch(endpoint: string, options: RequestInit = {}) {
