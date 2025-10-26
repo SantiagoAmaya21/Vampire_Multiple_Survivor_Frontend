@@ -1,12 +1,15 @@
-import { apiFetch } from "./api";
+export const API_URL = "http://localhost:8080";
 
-export async function getGameMap(id: number) {
-  return apiFetch(`/api/maps/${id}`);
-}
-
-export async function createGameMap(data: any) {
-  return apiFetch("/api/maps", {
-    method: "POST",
-    body: JSON.stringify(data),
+export async function apiFetch(endpoint: string, options: RequestInit = {}) {
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    headers: { "Content-Type": "application/json" },
+    ...options,
   });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Error ${response.status}: ${error}`);
+  }
+
+  return response.json();
 }
