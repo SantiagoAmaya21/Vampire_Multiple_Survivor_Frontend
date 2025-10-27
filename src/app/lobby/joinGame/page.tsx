@@ -4,3 +4,6 @@ import JoinGameClient from "./JoinGameClient";
 export default function Page() {
   return <JoinGameClient />;
 }
+
+
+export const dynamic = "force-dynamic";
