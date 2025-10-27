@@ -1,18 +1,24 @@
-import { apiFetch } from "./api";
+import axios from "axios";
 
-export async function createRoom(data: any) {
-  return apiFetch("/api/rooms/create", {
-    method: "POST",
-    body: JSON.stringify(data),
+const API_URL = "http://localhost:8080/api/rooms";
+
+export const getAllRooms = async () => {
+  const response = await axios.get(API_URL);
+  return response.data;
+};
+
+export const joinRoom = async (roomCode: string, playerName: string) => {
+  const response = await axios.post(`${API_URL}/${roomCode}/join`, null, {
+    params: { playerName },
   });
-}
+  return response.data;
+};
 
-export async function getAllRooms() {
-  return apiFetch("/api/rooms");
-}
-
-export async function joinRoom(roomCode: string, playerName: string) {
-  return apiFetch(`/api/rooms/${roomCode}/join?playerName=${playerName}`, {
-    method: "POST",
+export const createRoom = async (roomName: string, hostName: string, maxPlayers = 4) => {
+  const response = await axios.post(`${API_URL}/create`, {
+    roomName,
+    hostName,
+    maxPlayers,
   });
-}
+  return response.data;
+};

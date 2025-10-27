@@ -1,45 +1,37 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { createPlayer } from "../lib/player";
+import InputPlayerName from "../components/InputPlayerName";
 
 export default function Home() {
   const router = useRouter();
   const [playerName, setPlayerName] = useState("");
 
-  const handleStart = () => {
+  const handleStart = async () => {
     if (!playerName.trim()) return;
-    localStorage.setItem("playerName", playerName);
-    router.push("/initialScreen");
-  };
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") handleStart();
+    try {
+      const playerData = await createPlayer(playerName);
+      localStorage.setItem("player", JSON.stringify(playerData));
+      router.push("/initialScreen");
+    } catch (error) {
+      console.error(error);
+      alert("No se pudo crear el jugador, intenta de nuevo.");
+    }
   };
 
   return (
     <main
       className="h-screen w-screen bg-cover bg-center flex items-end justify-center"
-      style={{
-        backgroundImage: "url('/assets/imagen.jpg')",
-      }}
+      style={{ backgroundImage: "url('/assets/imagen.jpg')" }}
     >
       <div className="pb-16 flex flex-col items-center space-y-4">
-        <input
-          type="text"
-          placeholder="Ingresa tu nombre..."
+        <InputPlayerName
           value={playerName}
           onChange={(e) => setPlayerName(e.target.value)}
-          onKeyDown={handleKeyPress}
-          className="
-            px-6 py-3 rounded-xl w-64 text-lg text-white text-center font-semibold
-            bg-black/60 placeholder-gray-300
-            border-2 border-[#d4af37]
-            shadow-lg shadow-black
-            outline-none focus:ring-4 focus:ring-red-700/60
-          "
+          onEnter={handleStart}
         />
-
-
         <button
           onClick={handleStart}
           disabled={!playerName.trim()}
