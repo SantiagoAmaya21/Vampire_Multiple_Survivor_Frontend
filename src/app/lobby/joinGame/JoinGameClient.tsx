@@ -77,3 +77,5 @@ export default function JoinGame() {
     </main>
   );
 }
+
+export const dynamic = "force-dynamic";
