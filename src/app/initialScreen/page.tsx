@@ -13,7 +13,7 @@ interface PlayerDTO {
 interface GameRoomDTO {
   id: number;
   roomCode: string;
-  roomName: string;
+  name: string;
   gameStarted: boolean;
   maxPlayers: number;
   players: PlayerDTO[];

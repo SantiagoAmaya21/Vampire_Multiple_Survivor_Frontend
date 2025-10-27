@@ -143,7 +143,6 @@ export default function CreateGame() {
             Iniciar partida
           </button>
         ) : (
-          // Si por alguna razón no eres host, mostramos un botón deshabilitado o texto
           <div className="mt-4">
             <button
               disabled
