@@ -13,11 +13,15 @@ export default function Home() {
 
     try {
       const playerData = await createPlayer(playerName);
-      localStorage.setItem("player", JSON.stringify(playerData));
+      localStorage.setItem("player", JSON.stringify(playerData.data));
+      console.log("Jugador creado:", playerData.data);
       router.push("/initialScreen");
-    } catch (error) {
-      console.error(error);
-      alert("No se pudo crear el jugador, intenta de nuevo.");
+    } catch (error: any) {
+        if (error.response && error.response.status === 409) {
+          alert("Ese nombre ya existe, elige otro.");
+        } else {
+          alert("Hubo un error al crear el jugador.");
+        }
     }
   };
 

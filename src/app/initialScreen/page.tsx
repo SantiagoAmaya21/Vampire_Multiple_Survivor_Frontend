@@ -23,12 +23,22 @@ export default function InitialScreen() {
   const router = useRouter();
   const [rooms, setRooms] = useState<GameRoomDTO[]>([]);
   const [loading, setLoading] = useState(true);
-  const [playerName, setPlayerName] = useState("Santiago"); // o guardado en contexto/session
+  const [playerName, setPlayerName] = useState("");
+
+  useEffect(() => {
+    const storedPlayer = localStorage.getItem("player");
+    if (storedPlayer) {
+      const player = JSON.parse(storedPlayer);
+      setPlayerName(player.playerName);
+      console.log("Jugador recuperado:", player.playerName);
+    } else {
+      router.push("/");
+    }
+  }, [])
 
   const fetchRooms = async () => {
     try {
       const data = await getAllRooms();
-      // solo mostrar salas que no hayan iniciado
       const openRooms = data.filter((room: GameRoomDTO) => !room.gameStarted);
       setRooms(openRooms);
     } catch (error) {
@@ -39,8 +49,14 @@ export default function InitialScreen() {
   };
 
   useEffect(() => {
+    // Recuperar jugador guardado
+    const storedPlayer = localStorage.getItem("player");
+    if (storedPlayer) {
+      const { playerName } = JSON.parse(storedPlayer);
+      setPlayerName(playerName);
+    }
+
     fetchRooms();
-    // opcional: refrescar cada X segundos
     const interval = setInterval(fetchRooms, 5000);
     return () => clearInterval(interval);
   }, []);
@@ -52,6 +68,16 @@ export default function InitialScreen() {
     } catch (error) {
       console.error("Error joining room:", error);
       alert("No se pudo unir a la sala");
+    }
+  };
+
+  const handleCreateRoom = async () => {
+    try {
+      await createRoom("Sala nueva", playerName);
+      router.push("/lobby/CreateGame");
+    } catch (err) {
+      console.error("Error creando sala:", err);
+      alert("No se pudo crear la sala");
     }
   };
 
@@ -77,15 +103,7 @@ export default function InitialScreen() {
 
       <div className="absolute top-6 right-6">
         <button
-          onClick={async () => {
-            try {
-              await createRoom("Sala nueva", playerName); // llamamos al backend
-              router.push("/lobby/CreateGame"); // solo vamos a la página existente
-            } catch (err) {
-              console.error("Error creando sala:", err);
-              alert("No se pudo crear la sala");
-            }
-          }}
+          onClick={handleCreateRoom}
           className="px-6 py-3 bg-black/70 text-white text-xl font-bold
                      border-2 border-[#d4af37] rounded-xl
                      transition-all duration-200 hover:scale-105
@@ -116,7 +134,7 @@ export default function InitialScreen() {
                              rounded-xl border border-[#d4af37]/40"
                 >
                   <span className="text-white">
-                    <strong>{room.roomName}</strong> — Host:{" "}
+                    <strong>{room.name}</strong> — Host:{" "}
                     {room.players.find((p) => p.host)?.playerName || "Desconocido"}
                   </span>
                   <button
