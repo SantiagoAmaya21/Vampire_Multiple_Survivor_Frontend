@@ -166,7 +166,7 @@ export default function GameScreen() {
 
   // Handlers de WebSocket
   const handleGameStateUpdate = useCallback((data: any) => {
-    console.log("📡 Estado del juego actualizado:", data);
+    console.log(" Estado del juego actualizado:", data);
     lastStateUpdate.current = Date.now();
 
     if (data.players) {
