@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:8080/api/rooms";
+const API_URL = "https://proyectodgsa-brauaagmf6gwhxa9.canadacentral-01.azurewebsites.net/api/rooms";
 
 export const getAllRooms = async () => {
   const response = await axios.get(API_URL);

@@ -12,7 +12,7 @@ export function connectGame(roomCode: string, name: string, onState: (data: any)
   if (client && client.connected) return;
 
   client = new Client({
-    webSocketFactory: () => new SockJS("http://localhost:8080/ws-game"),
+    webSocketFactory: () => new SockJS("https://proyectodgsa-brauaagmf6gwhxa9.canadacentral-01.azurewebsites.net/ws-game"),
     reconnectDelay: 3000,
     debug: () => {},
   });

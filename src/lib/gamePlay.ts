@@ -1,7 +1,7 @@
 // src/lib/gamePlay.ts
 import axios from "axios";
 
-const API_URL = "http://localhost:8080/api";
+const API_URL = "https://proyectodgsa-brauaagmf6gwhxa9.canadacentral-01.azurewebsites.net/api";
 
 export interface PlayerHealthDTO {
   playerName: string;
