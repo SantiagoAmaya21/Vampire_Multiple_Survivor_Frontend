@@ -48,6 +48,9 @@ export default function GameCanvas(): JSX.Element {
       xpText!: Phaser.GameObjects.Text;
       xpBar!: Phaser.GameObjects.Graphics;
 
+       currentKeys = { up: false, down: false, left: false, right: false };
+        lastSentKeys = { up: false, down: false, left: false, right: false };
+
       constructor() { super({ key: "MainScene" }); }
 
       preload() {
@@ -81,28 +84,68 @@ export default function GameCanvas(): JSX.Element {
         this.xpText = this.add.text(w / 2, 10, "XP: 0%", { font: "18px Arial", color: "#ffffff" }).setOrigin(0.5, 0);
         this.drawXpBar();
 
-        // Input
-        const keys = this.input.keyboard.addKeys({
+        // Input mejorado
+        const keys = this.input.keyboard!.addKeys({
           up: "W",
           down: "S",
           left: "A",
           right: "D",
-        }) as Phaser.Types.Input.Keyboard.CursorKeys & { left: Phaser.Input.Keyboard.Key, right: Phaser.Input.Keyboard.Key };
+        }) as any;
 
-        const sendCurrentInput = () => {
-          sendMovement(!!keys.up?.isDown, !!keys.down?.isDown, !!keys.left?.isDown, !!keys.right?.isDown);
+        // Función para actualizar el estado de las teclas
+        const updateKeys = () => {
+          this.currentKeys.up = keys.up?.isDown || false;
+          this.currentKeys.down = keys.down?.isDown || false;
+          this.currentKeys.left = keys.left?.isDown || false;
+          this.currentKeys.right = keys.right?.isDown || false;
+
+          // Solo enviar si cambió algo
+          if (
+            this.currentKeys.up !== this.lastSentKeys.up ||
+            this.currentKeys.down !== this.lastSentKeys.down ||
+            this.currentKeys.left !== this.lastSentKeys.left ||
+            this.currentKeys.right !== this.lastSentKeys.right
+          ) {
+            console.log("📤 Enviando input:", this.currentKeys);
+            sendMovement(
+              this.currentKeys.up,
+              this.currentKeys.down,
+              this.currentKeys.left,
+              this.currentKeys.right
+            );
+
+            // Actualizar último estado enviado
+            this.lastSentKeys = { ...this.currentKeys };
+          }
         };
 
-        this.input.keyboard.on("keydown", sendCurrentInput);
-        this.input.keyboard.on("keyup", sendCurrentInput);
+        // Escuchar eventos de teclado
+        this.input.keyboard!.on("keydown", updateKeys);
+        this.input.keyboard!.on("keyup", updateKeys);
 
+        // También enviar periódicamente para sincronizar (cada 100ms)
+        this.time.addEvent({
+          delay: 100,
+          callback: updateKeys,
+          loop: true
+        });
         connectGame(
           roomCode,
           playerName,
           (state: GameState) => { this.applyState(state); },
           (xpPayload: any) => { if (xpPayload.progress !== undefined) { this.xpProgress = xpPayload.progress; this.drawXpBar(); } },
-          (ev: any) => { if (ev.type === "GAME_WON") { this.add.text(w / 2, h / 2, "¡Ganaste!", { font: "42px Arial", color: "#ffd700" }).setOrigin(0.5); } }
-        );
+(ev: any) => {
+  if (ev.type === "GAME_WON") {
+    this.add.text(w / 2, h / 2, "¡Ganaste!", {
+      font: "42px Arial",
+      color: "#ffd700"
+    }).setOrigin(0.5);
+  }
+  if (ev.type === "PLAYER_ATTACK") {
+    console.log("⚔️ Ataque detectado:", ev.playerName);
+    // Aquí podrías mostrar una animación de ataque
+  }
+}        );
       }
 
       drawXpBar() {
