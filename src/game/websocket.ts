@@ -1,37 +1,34 @@
 import SockJS from "sockjs-client";
-import { Client } from "@stomp/stompjs";
+import { Client, Frame } from "@stomp/stompjs";
 
 let client: Client | null = null;
-let roomCode = "";
-let playerName = "";
-let callback: any = null;
+let room: string | null = null;
+let playerName: string | null = null;
 
-export function connectWS(code: string, name: string, onStateUpdate: any) {
-  roomCode = code;
+export function connectGame(roomCode: string, name: string, onState: (data: any) => void, onXp: (data: any) => void, onEvent: (data: any) => void) {
+  room = roomCode;
   playerName = name;
-  callback = onStateUpdate;
+
+  if (client && client.connected) return;
 
   client = new Client({
-    webSocketFactory: () => new SockJS("http://localhost:8080/ws"),
-    reconnectDelay: 5000,
+    webSocketFactory: () => new SockJS("http://localhost:8080/ws-game"),
+    reconnectDelay: 3000,
+    debug: () => {},
   });
 
   client.onConnect = () => {
-    client!.subscribe(`/topic/game/${roomCode}`, (msg) => {
-      const state = JSON.parse(msg.body);
-      callback(state);
-    });
-
-    sendInput(0, 0, true);
+    client!.subscribe(`/topic/game/${roomCode}/state`, (msg) => { if (msg.body) onState(JSON.parse(msg.body)); });
+    client!.subscribe(`/topic/game/${roomCode}/xp`, (msg) => { if (msg.body) onXp(JSON.parse(msg.body)); });
+    client!.subscribe(`/topic/game/${roomCode}/event`, (msg) => { if (msg.body) onEvent(JSON.parse(msg.body)); });
   };
 
   client.activate();
 }
 
-export function sendInput(x: number, y: number, facingRight: boolean) {
-  if (!client || !client.connected) return;
-  client.publish({
-    destination: `/app/game/update/${roomCode}`,
-    body: JSON.stringify({ player: playerName, x, y, facingRight })
-  });
+export function disconnectGame() { client?.deactivate(); client = null; room = null; playerName = null; }
+
+export function sendMovement(arriba: boolean, abajo: boolean, izquierda: boolean, derecha: boolean) {
+  if (!client || !client.connected || !room || !playerName) return;
+  client.publish({ destination: `/app/game/${room}/input`, body: JSON.stringify({ playerName, arriba, abajo, izquierda, derecha }) });
 }

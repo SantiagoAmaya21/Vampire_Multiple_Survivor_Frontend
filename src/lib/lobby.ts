@@ -17,5 +17,6 @@ export const getRoomByPlayer = async (playerName: string) => {
 
 export const startGame = async (roomCode: string) => {
   const res = await axios.put(`${API_URL}/${roomCode}/start`);
+  console.log(res.data);
   return res.data;
 };
