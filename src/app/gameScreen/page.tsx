@@ -164,6 +164,34 @@ export default function GameScreen() {
     };
   }, [roomCode, playerName]);
 
+  useEffect(() => {
+    if (!roomCode) return;
+
+    const loadInitialChests = async () => {
+      try {
+        const response = await fetch(`/api/gameplay/chests/${roomCode}`);
+        if (response.ok) {
+          const chestsData = await response.json();
+          setGameState((prev) => ({
+            ...prev,
+            chests: chestsData.map((c: any) => ({
+              id: c.id,
+              x: c.position.x,
+              y: c.position.y,
+              opened: !c.active
+            }))
+          }));
+          console.log(" Cofres iniciales cargados:", chestsData.length);
+        }
+      } catch (error) {
+        console.error("Error cargando cofres:", error);
+      }
+    };
+
+    loadInitialChests();
+  }, [roomCode]);
+
+
   // Handlers de WebSocket
   const handleGameStateUpdate = useCallback((data: any) => {
     console.log(" Estado del juego actualizado:", data);
@@ -219,54 +247,76 @@ export default function GameScreen() {
   }, []);
 
   const handleGameEvent = useCallback((data: any) => {
-    console.log("Evento de juego:", data);
+      console.log("Evento de juego:", data);
 
-    if (data.type === "PLAYER_DIED") {
-      console.log(`${data.playerName} ha muerto`);
-      if (data.playerName === playerName) {
-        isAlive.current = false;
-        setDebugInfo(`Has muerto - Modo espectador`);
+      if (data.type === "PLAYER_DIED") {
+        console.log(`${data.playerName} ha muerto`);
+        if (data.playerName === playerName) {
+          isAlive.current = false;
+          setDebugInfo(`Has muerto - Modo espectador`);
+        }
+
+        setGameState((prev) => {
+          const newPlayers = new Map(prev.players);
+          const player = newPlayers.get(data.playerName);
+          if (player) {
+            player.alive = false;
+            player.health = 0;
+            newPlayers.set(data.playerName, player);
+          }
+          return { ...prev, players: newPlayers };
+        });
       }
 
-      // Actualizar estado del jugador
-      setGameState((prev) => {
-        const newPlayers = new Map(prev.players);
-        const player = newPlayers.get(data.playerName);
-        if (player) {
-          player.alive = false;
-          player.health = 0;
-          newPlayers.set(data.playerName, player);
-        }
-        return { ...prev, players: newPlayers };
-      });
-    }
+      if (data.type === "NPC_KILLED") {
+        console.log(` NPC ${data.npcId} eliminado`);
+        setGameState((prev) => ({
+          ...prev,
+          npcs: prev.npcs.filter((npc) => npc.id !== data.npcId),
+        }));
+      }
 
-    if (data.type === "NPC_KILLED") {
-      console.log(`👾 NPC ${data.npcId} eliminado`);
-      setGameState((prev) => ({
-        ...prev,
-        npcs: prev.npcs.filter((npc) => npc.id !== data.npcId),
-      }));
-    }
+      //  Handler para cofres spawneados
+      if (data.type === "CHEST_SPAWNED") {
+        console.log(` COFRE SPAWNEADO en (${data.x}, ${data.y})`);
+        setGameState((prev) => ({
+          ...prev,
+          chests: [...prev.chests, {
+            id: data.chestId,
+            x: data.x,
+            y: data.y,
+            opened: false
+          }]
+        }));
+      }
 
-    if (data.type === "CHEST_OPENED") {
-      console.log(`Cofre ${data.chestId} abierto`);
-      setGameState((prev) => ({
-        ...prev,
-        chests: prev.chests.map((chest) =>
-          chest.id === data.chestId ? { ...chest, opened: true } : chest
-        ),
-      }));
-    }
+      if (data.type === "CHEST_OPENED") {
+        console.log(`Cofre ${data.chestId} abierto por ${data.openedBy}`);
+        setGameState((prev) => ({
+          ...prev,
+          chests: prev.chests.map((chest) =>
+            chest.id === data.chestId ? { ...chest, opened: true } : chest
+          ),
+        }));
+      }
 
-    if (data.type === "GAME_OVER") {
-      console.log("GAME OVER");
-      setGameState((prev) => ({
-        ...prev,
-        gameOver: true,
-      }));
-    }
-  }, [playerName]);
+      if (data.type === "GAME_OVER") {
+        console.log("GAME OVER");
+        setGameState((prev) => ({
+          ...prev,
+          gameOver: true,
+        }));
+      }
+
+      //  Handler para victoria
+      if (data.type === "GAME_WON") {
+        console.log("¡VICTORIA!");
+        setGameState((prev) => ({
+          ...prev,
+          victory: true,
+        }));
+      }
+    }, [playerName]);
 
   // Control de teclado
   useEffect(() => {
