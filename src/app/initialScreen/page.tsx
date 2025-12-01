@@ -2,6 +2,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getAllRooms, joinRoom, createRoom } from "@/lib/gameRoom";
+import { getCurrentUser, logout } from "@/lib/auth";
 
 interface PlayerDTO {
   id: number;
@@ -24,17 +25,41 @@ export default function InitialScreen() {
   const [rooms, setRooms] = useState<GameRoomDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [playerName, setPlayerName] = useState("");
+  const [email, setEmail] = useState("");
 
   useEffect(() => {
-    const storedPlayer = localStorage.getItem("player");
-    if (storedPlayer) {
-      const player = JSON.parse(storedPlayer);
-      setPlayerName(player.playerName);
-      console.log("Jugador recuperado:", player.playerName);
-    } else {
+    verifyAuthAndLoadPlayer();
+  }, []);
+
+  const verifyAuthAndLoadPlayer = async () => {
+    try {
+      // Verificar autenticación con Azure
+      const user = await getCurrentUser();
+
+      if (!user.isAuthenticated || !user.isRegistered || !user.playerName) {
+        // No autenticado o no registrado - redirigir al login
+        router.push("/");
+        return;
+      }
+
+      // Usuario válido
+      setPlayerName(user.playerName);
+      setEmail(user.email || "");
+
+      // Guardar en localStorage para compatibilidad
+      localStorage.setItem("player", JSON.stringify({
+        playerName: user.playerName,
+        email: user.email,
+        userId: user.userId
+      }));
+
+      console.log("Usuario autenticado:", user.playerName);
+
+    } catch (error) {
+      console.error("Error verificando autenticación:", error);
       router.push("/");
     }
-  }, [])
+  };
 
   const fetchRooms = async () => {
     try {
@@ -49,17 +74,12 @@ export default function InitialScreen() {
   };
 
   useEffect(() => {
-    // Recuperar jugador guardado
-    const storedPlayer = localStorage.getItem("player");
-    if (storedPlayer) {
-      const { playerName } = JSON.parse(storedPlayer);
-      setPlayerName(playerName);
-    }
+    if (!playerName) return;
 
     fetchRooms();
     const interval = setInterval(fetchRooms, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [playerName]);
 
   const handleJoin = async (roomCode: string) => {
     try {
@@ -81,6 +101,25 @@ export default function InitialScreen() {
     }
   };
 
+  const handleLogout = () => {
+    logout();
+  };
+
+  if (loading || !playerName) {
+    return (
+      <main
+        className="h-screen w-screen bg-cover bg-center flex items-center justify-center"
+        style={{
+          backgroundImage: "url('/assets/vampire-survivors_q9es.1280.jpg')",
+        }}
+      >
+        <div className="bg-black/70 p-8 rounded-2xl border-2 border-[#d4af37]">
+          <p className="text-white text-xl">Cargando...</p>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main
       className="h-screen w-screen bg-cover bg-center flex flex-col"
@@ -101,6 +140,22 @@ export default function InitialScreen() {
         Vampire Multiple Survivor
       </h2>
 
+      {/* Información del usuario */}
+      <div className="absolute top-6 left-6 bg-black/70 p-4 rounded-xl border-2 border-[#d4af37]">
+        <p className="text-white text-sm">
+          👤 <span className="text-yellow-400 font-bold">{playerName}</span>
+        </p>
+        <p className="text-white text-xs opacity-80">{email}</p>
+        <button
+          onClick={handleLogout}
+          className="mt-2 px-3 py-1 text-xs bg-red-800/80 text-white rounded-lg
+                     border border-red-500 hover:bg-red-600 transition-all"
+        >
+          Cerrar Sesión
+        </button>
+      </div>
+
+      {/* Botón crear partida */}
       <div className="absolute top-6 right-6">
         <button
           onClick={handleCreateRoom}
@@ -113,6 +168,7 @@ export default function InitialScreen() {
         </button>
       </div>
 
+      {/* Lista de partidas */}
       <div className="flex-grow flex flex-col items-center justify-center">
         <div className="bg-black/60 p-6 rounded-2xl border border-[#d4af37] w-[600px]">
           <h3 className="text-center text-2xl text-white font-bold mb-4">
