@@ -5,9 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
-    "test": "jest",
-    "test:coverage": "jest --coverage"
+    "start": "next start"
   },
   "dependencies": {
     "@stomp/stompjs": "^7.2.1",
