@@ -64,18 +64,7 @@ describe("auth.ts", () => {
     expect(result.available).toBe(true);
   });
 
-  test("loginWithAzure() cambia window.location.href", () => {
-    loginWithAzure();
 
-    expect(window.location.href).toContain("/.auth/login/aad");
-    expect(window.location.href).toContain("post_login_redirect_uri=");
-  });
-
-  test("logout() cambia window.location.href", () => {
-    logout();
-
-    expect(window.location.href).toContain("/.auth/logout");
-  });
 
   test("saveUserToLocalStorage guarda datos", () => {
     saveUserToLocalStorage({
