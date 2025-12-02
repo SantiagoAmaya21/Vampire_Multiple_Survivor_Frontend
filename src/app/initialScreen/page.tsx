@@ -3,7 +3,7 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getAllRooms, joinRoom, createRoom } from "@/lib/gameRoom";
-import { getCurrentUser, logout, activateSession, deactivateSession } from "@/lib/auth";
+import { getCurrentUser, logout } from "@/lib/auth";
 
 interface PlayerDTO {
   id: number;
@@ -27,7 +27,6 @@ export default function InitialScreen() {
   const [loading, setLoading] = useState(true);
   const [playerName, setPlayerName] = useState("");
   const [email, setEmail] = useState("");
-  const [sessionBlocked, setSessionBlocked] = useState(false);
 
   useEffect(() => {
     verifyAuthAndLoadPlayer();
@@ -44,17 +43,7 @@ export default function InitialScreen() {
         return;
       }
 
-      // VALIDAR SESIÓN ÚNICA
-      const sessionResult = await activateSession();
-
-      if (!sessionResult.success && sessionResult.hasActiveSession) {
-        // Otra sesión activa detectada
-        setSessionBlocked(true);
-        setLoading(false);
-        return;
-      }
-
-      // Usuario válido con sesión activada
+      // Usuario válido
       setPlayerName(user.playerName);
       setEmail(user.email || "");
 
@@ -65,7 +54,7 @@ export default function InitialScreen() {
         userId: user.userId
       }));
 
-      console.log("✅ Usuario autenticado y sesión activada:", user.playerName);
+      console.log("Usuario autenticado:", user.playerName);
 
     } catch (error) {
       console.error("Error verificando autenticación:", error);
@@ -117,24 +106,9 @@ export default function InitialScreen() {
     }
   };
 
-  const handleLogout = async () => {
-    await deactivateSession();
+  const handleLogout = () => {
     logout();
   };
-
-  // Desactivar sesión al cerrar/salir
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      if (playerName) {
-        deactivateSession();
-      }
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
-  }, [playerName]);
 
   if (loading || !playerName) {
     return (
@@ -146,36 +120,6 @@ export default function InitialScreen() {
       >
         <div className="bg-black/70 p-8 rounded-2xl border-2 border-[#d4af37]">
           <p className="text-white text-xl">Cargando...</p>
-        </div>
-      </main>
-    );
-  }
-
-  // Pantalla de sesión bloqueada
-  if (sessionBlocked) {
-    return (
-      <main
-        className="h-screen w-screen bg-cover bg-center flex items-center justify-center"
-        style={{
-          backgroundImage: "url('/assets/vampire-survivors_q9es.1280.jpg')",
-        }}
-      >
-        <div className="bg-red-900/90 p-8 rounded-2xl border-4 border-red-500 max-w-md text-center">
-          <h2 className="text-white text-3xl font-bold mb-4">🔒 Sesión Activa Detectada</h2>
-          <p className="text-white text-lg mb-6">
-            Esta cuenta ya tiene una sesión activa en otro dispositivo.
-          </p>
-          <p className="text-white text-sm mb-6 opacity-80">
-            Por seguridad, solo puedes tener una sesión activa a la vez.
-            Cierra la otra sesión para continuar aquí.
-          </p>
-          <button
-            onClick={handleLogout}
-            className="px-6 py-3 bg-white text-red-900 font-bold rounded-lg
-                       hover:bg-gray-200 transition-all"
-          >
-            Cerrar Sesión
-          </button>
         </div>
       </main>
     );

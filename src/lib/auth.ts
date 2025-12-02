@@ -71,10 +71,10 @@ export async function checkPlayerNameAvailability(playerName: string) {
  * Azure maneja todo el flujo de autenticación
  */
 export function loginWithAzure() {
-  // Usar ruta de callback intermedia
-  const callbackUrl = `${window.location.origin}/auth/callback`;
-
-  window.location.href = `${BACKEND_URL}/.auth/login/aad?post_login_redirect_uri=${encodeURIComponent(callbackUrl)}`;
+  // Redirigir a la URL de login de Azure EasyAuth
+  // Azure redirigirá automáticamente de vuelta después del login
+  const redirectUrl = encodeURIComponent(window.location.origin);
+  window.location.href = `${BACKEND_URL}/.auth/login/aad?post_login_redirect_uri=${redirectUrl}`;
 }
 
 /**
@@ -118,44 +118,4 @@ export function getPlayerFromLocalStorage() {
     }
   }
   return null;
-}
-
-/**
- * Activar sesión única (validar que no haya otra sesión activa)
- */
-export async function activateSession() {
-  try {
-    const response = await axios.post(
-      `${API_URL}/activate-session`,
-      null,
-      axiosConfig
-    );
-    return response.data;
-  } catch (error: any) {
-    if (error.response?.status === 409) {
-      // Conflicto: sesión ya activa en otro dispositivo
-      return {
-        success: false,
-        hasActiveSession: true,
-        message: error.response.data.message
-      };
-    }
-    throw error;
-  }
-}
-
-/**
- * Desactivar sesión
- */
-export async function deactivateSession() {
-  try {
-    const response = await axios.post(
-      `${API_URL}/deactivate-session`,
-      null,
-      axiosConfig
-    );
-    return response.data;
-  } catch (error) {
-    console.error("Error desactivando sesión:", error);
-  }
 }
