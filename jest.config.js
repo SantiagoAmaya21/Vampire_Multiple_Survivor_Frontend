@@ -1,7 +1,6 @@
 /** @type {import('jest').Config} */
 module.exports = {
   testEnvironment: "jsdom",
-
   setupFilesAfterEnv: ["<rootDir>/src/tests/setupTests.ts"],
 
   moduleNameMapper: {
@@ -10,10 +9,22 @@ module.exports = {
   },
 
   transform: {
-    "^.+\\.(ts|tsx)$": "babel-jest"
+    "^.+\\.(ts|tsx)$": ["@swc/jest", {
+      jsc: {
+        parser: {
+          syntax: "typescript",
+          tsx: true,
+        },
+        transform: {
+          react: {
+            runtime: "automatic"
+          }
+        }
+      }
+    }]
   },
 
   transformIgnorePatterns: [
-    "/node_modules/"
+    "/node_modules/(?!(@stomp|sockjs-client)/)"
   ]
 };
