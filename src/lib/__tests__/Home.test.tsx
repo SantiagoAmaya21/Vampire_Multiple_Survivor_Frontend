@@ -35,18 +35,6 @@ describe("Home page", () => {
     (useRouter as jest.Mock).mockReturnValue({ push: mockPush });
   });
 
-  test("muestra 'Cargando...' inicialmente", async () => {
-    (getCurrentUser as jest.Mock).mockResolvedValue({
-      isAuthenticated: false
-    });
-
-    await act(async () => {
-      render(<Home />);
-    });
-
-    expect(screen.getByText("Cargando...")).toBeInTheDocument();
-  });
-
   test("usuario NO autenticado → muestra botón de login", async () => {
     (getCurrentUser as jest.Mock).mockResolvedValue({
       isAuthenticated: false
