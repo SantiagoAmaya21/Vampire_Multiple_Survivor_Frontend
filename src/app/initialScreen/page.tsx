@@ -1,4 +1,5 @@
 "use client";
+import React from "react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getAllRooms, joinRoom, createRoom } from "@/lib/gameRoom";
