@@ -1,3 +1,4 @@
+import React from "react";
 interface InputPlayerNameProps {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
