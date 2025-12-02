@@ -64,7 +64,10 @@ export default function InitialScreen() {
   const fetchRooms = async () => {
     try {
       const data = await getAllRooms();
-      const openRooms = data.filter((room: GameRoomDTO) => !room.gameStarted);
+      // Filtrar solo salas que NO están iniciadas Y que tienen jugadores
+      const openRooms = data.filter((room: GameRoomDTO) =>
+        !room.gameStarted && room.players && room.players.length > 0
+      );
       setRooms(openRooms);
     } catch (error) {
       console.error("Error fetching rooms:", error);
@@ -95,9 +98,10 @@ export default function InitialScreen() {
     try {
       await createRoom("Sala nueva", playerName);
       router.push("/lobby/CreateGame");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error creando sala:", err);
-      alert("No se pudo crear la sala");
+      const errorMessage = err.response?.data?.message || err.message || "No se pudo crear la sala";
+      alert(errorMessage);
     }
   };
 
