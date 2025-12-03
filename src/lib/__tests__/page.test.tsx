@@ -54,14 +54,21 @@ describe("InitialScreen", () => {
   });
 
   test("muestra 'Cargando...' mientras se verifica la autenticación", async () => {
-    (getCurrentUser as jest.Mock).mockImplementation(() =>
-      new Promise(resolve => setTimeout(() => resolve({
-        isAuthenticated: true,
-        isRegistered: true,
-        playerName: "TestPlayer",
-        email: "test@test.com",
-        userId: 1
-      }), 100))
+    (getCurrentUser as jest.Mock).mockImplementation(
+      () =>
+        new Promise(resolve =>
+          setTimeout(
+            () =>
+              resolve({
+                isAuthenticated: true,
+                isRegistered: true,
+                playerName: "TestPlayer",
+                email: "test@test.com",
+                userId: 1,
+              }),
+            100
+          )
+        )
     );
 
     (getAllRooms as jest.Mock).mockResolvedValue([]);
@@ -163,7 +170,7 @@ describe("InitialScreen", () => {
         JSON.stringify({
           playerName: "SavedPlayer",
           email: "saved@test.com",
-          userId: 123
+          userId: 123,
         })
       );
     });
@@ -185,7 +192,9 @@ describe("InitialScreen", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("No hay partidas por ahora...")).toBeInTheDocument();
+      expect(
+        screen.getByText("No hay partidas por ahora...")
+      ).toBeInTheDocument();
     });
   });
 
@@ -205,9 +214,7 @@ describe("InitialScreen", () => {
         name: "Sala de prueba",
         gameStarted: false,
         maxPlayers: 4,
-        players: [
-          { id: 1, playerName: "Host1", ready: true, host: true }
-        ]
+        players: [{ id: 1, playerName: "Host1", ready: true, host: true }],
       },
       {
         id: 2,
@@ -215,10 +222,8 @@ describe("InitialScreen", () => {
         name: "Otra sala",
         gameStarted: false,
         maxPlayers: 4,
-        players: [
-          { id: 2, playerName: "Host2", ready: false, host: true }
-        ]
-      }
+        players: [{ id: 2, playerName: "Host2", ready: false, host: true }],
+      },
     ];
 
     (getAllRooms as jest.Mock).mockResolvedValue(mockRooms);
@@ -251,20 +256,16 @@ describe("InitialScreen", () => {
         name: "Sala disponible",
         gameStarted: false,
         maxPlayers: 4,
-        players: [
-          { id: 1, playerName: "Host1", ready: true, host: true }
-        ]
+        players: [{ id: 1, playerName: "Host1", ready: true, host: true }],
       },
       {
         id: 2,
         roomCode: "XYZ789",
         name: "Sala iniciada",
-        gameStarted: true, // Esta no debe aparecer
+        gameStarted: true,
         maxPlayers: 4,
-        players: [
-          { id: 2, playerName: "Host2", ready: false, host: true }
-        ]
-      }
+        players: [{ id: 2, playerName: "Host2", ready: false, host: true }],
+      },
     ];
 
     (getAllRooms as jest.Mock).mockResolvedValue(mockRooms);
@@ -274,7 +275,9 @@ describe("InitialScreen", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("Sala disponible")).toBeInTheDocument();
+      expect(
+        screen.getByText("Sala disponible")
+      ).toBeInTheDocument();
       expect(screen.queryByText("Sala iniciada")).not.toBeInTheDocument();
     });
   });
@@ -323,10 +326,8 @@ describe("InitialScreen", () => {
         name: "Sala para unirse",
         gameStarted: false,
         maxPlayers: 4,
-        players: [
-          { id: 1, playerName: "HostPlayer", ready: true, host: true }
-        ]
-      }
+        players: [{ id: 1, playerName: "HostPlayer", ready: true, host: true }],
+      },
     ];
 
     (getAllRooms as jest.Mock).mockResolvedValue(mockRooms);
@@ -344,7 +345,9 @@ describe("InitialScreen", () => {
 
     await waitFor(() => {
       expect(joinRoom).toHaveBeenCalledWith("JOIN123", "Joiner");
-      expect(mockPush).toHaveBeenCalledWith("/lobby/joinGame?id=JOIN123&playerName=Joiner");
+      expect(mockPush).toHaveBeenCalledWith(
+        "/lobby/joinGame?id=JOIN123&playerName=Joiner"
+      );
     });
   });
 
@@ -364,10 +367,8 @@ describe("InitialScreen", () => {
         name: "Sala con error",
         gameStarted: false,
         maxPlayers: 4,
-        players: [
-          { id: 1, playerName: "Host", ready: true, host: true }
-        ]
-      }
+        players: [{ id: 1, playerName: "Host", ready: true, host: true }],
+      },
     ];
 
     (getAllRooms as jest.Mock).mockResolvedValue(mockRooms);
@@ -398,6 +399,8 @@ describe("InitialScreen", () => {
     });
 
     (getAllRooms as jest.Mock).mockResolvedValue([]);
+
+    // Mock backend error → UI mostrará el err.message
     (createRoom as jest.Mock).mockRejectedValue(new Error("Error en servidor"));
 
     await act(async () => {
@@ -411,7 +414,7 @@ describe("InitialScreen", () => {
     });
 
     await waitFor(() => {
-      expect(global.alert).toHaveBeenCalledWith("No se pudo crear la sala");
+      expect(global.alert).toHaveBeenCalledWith("Error en servidor");
     });
   });
 
@@ -469,7 +472,7 @@ describe("InitialScreen", () => {
       expect(getAllRooms).toHaveBeenCalledTimes(2);
     });
 
-    // Avanzar otros 5 segundos
+    // Otros 5 segundos
     await act(async () => {
       jest.advanceTimersByTime(5000);
     });
@@ -502,15 +505,12 @@ describe("InitialScreen", () => {
       expect(getAllRooms).toHaveBeenCalledTimes(1);
     });
 
-    // Desmontar componente
     unmount();
 
-    // Avanzar tiempo después de desmontar
     await act(async () => {
       jest.advanceTimersByTime(10000);
     });
 
-    // No debe haber llamadas adicionales
     expect(getAllRooms).toHaveBeenCalledTimes(1);
 
     jest.useRealTimers();
