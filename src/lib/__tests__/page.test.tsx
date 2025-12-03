@@ -398,6 +398,8 @@ describe("InitialScreen", () => {
     });
 
     (getAllRooms as jest.Mock).mockResolvedValue([]);
+
+    // El backend envía este mensaje → tu UI lo mostrará
     (createRoom as jest.Mock).mockRejectedValue(new Error("Error en servidor"));
 
     await act(async () => {
@@ -414,6 +416,7 @@ describe("InitialScreen", () => {
       expect(global.alert).toHaveBeenCalledWith("No se pudo crear la sala");
     });
   });
+
 
   test("botón 'Cerrar Sesión' llama a logout", async () => {
     (getCurrentUser as jest.Mock).mockResolvedValue({
