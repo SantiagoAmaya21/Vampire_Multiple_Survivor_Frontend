@@ -376,7 +376,7 @@ export default function GameScreen() {
       {/* ÁREA DE JUEGO CON ENTIDADES HTML */}
       <div className="flex-1 w-full flex items-center justify-center">
         <div
-          className="relative border-4 border-yellow-600 rounded-xl shadow-[0_0_30px_rgba(255,215,0,0.5)] bg-black/50"
+          className="relative"
           style={{ width: 800, height: 600 }}
         >
           {/* Renderizar jugadores como elementos HTML */}
