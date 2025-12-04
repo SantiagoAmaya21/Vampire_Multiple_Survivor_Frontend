@@ -4,16 +4,24 @@ import SockJS from "sockjs-client";
 
 let client: Client | null = null;
 
-export function connect(roomCode: string, onState: (data: any) => void, onXp: (data: any) => void, onEvent: (data: any) => void) {
+export function connect(
+  roomCode: string,
+  onState: (data: any) => void,
+  onXp: (data: any) => void,
+  onEvent: (data: any) => void
+) {
   if (client && client.connected) return client;
 
+  const backendWsUrl = "/api/proxy/ws-game";
+
   client = new Client({
-    webSocketFactory: () => new SockJS("https://vampiremultiplesurvivors-h3gfb9gsf4bscre2.canadacentral-01.azurewebsites.net/ws-game"),
+    webSocketFactory: () => new SockJS(backendWsUrl),
     reconnectDelay: 5000,
-    debug: (str) => {
+    debug: () => {
       // console.log(str);
     },
     onConnect: () => {
+      // Suscripciones del juego
       client!.subscribe(`/topic/game/${roomCode}/state`, (msg) => {
         if (msg.body) onState(JSON.parse(msg.body));
       });
@@ -30,7 +38,16 @@ export function connect(roomCode: string, onState: (data: any) => void, onXp: (d
   return client;
 }
 
-export function sendInput(roomCode: string, movement: { playerName: string; arriba:boolean; abajo:boolean; izquierda:boolean; derecha:boolean; }) {
+export function sendInput(
+  roomCode: string,
+  movement: {
+    playerName: string;
+    arriba: boolean;
+    abajo: boolean;
+    izquierda: boolean;
+    derecha: boolean;
+  }
+) {
   if (!client || !client.connected) return;
   client.publish({
     destination: `/app/game/${roomCode}/input`,

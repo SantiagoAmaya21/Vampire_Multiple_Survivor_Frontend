@@ -1,6 +1,7 @@
+// src/api/lib/gameRoom.ts
 import axios from "axios";
-
-const API_URL = "https://vampiremultiplesurvivors-h3gfb9gsf4bscre2.canadacentral-01.azurewebsites.net/api/rooms";
+const BACKEND_PROXY = "/api/proxy";
+const API_URL = `${BACKEND_PROXY}/api/rooms`;
 
 // Configuración para incluir credenciales (cookies de Azure)
 const axiosConfig = {
