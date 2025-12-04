@@ -387,8 +387,8 @@ export default function GameScreen() {
               style={{
                 left: `${player.x}px`,
                 top: `${player.y}px`,
-                width: '80px',
-                height: '80px',
+                width: '110px',
+                height: '110px',
                 opacity: player.alive ? 1 : 0.3,
               }}
             >
@@ -426,8 +426,8 @@ export default function GameScreen() {
               style={{
                 left: `${npc.x}px`,
                 top: `${npc.y}px`,
-                width: '70px',
-                height: '70px',
+                width: '100px',
+                height: '100px',
               }}
             >
               {/* GIF animado del NPC */}
