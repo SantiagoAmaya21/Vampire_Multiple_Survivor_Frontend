@@ -3,7 +3,6 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { connect, sendInput, disconnect } from "@/lib/ws";
 import {
-  spawnPlayers,
   getPlayersHealth,
   getNpcPositions,
   getExperienceProgress,
@@ -44,33 +43,10 @@ export default function GameScreen() {
   });
   const [debugInfo, setDebugInfo] = useState<string>("Inicializando...");
 
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const keysPressed = useRef<Set<string>>(new Set());
   const movementInterval = useRef<NodeJS.Timeout | null>(null);
   const isAlive = useRef(true);
   const lastStateUpdate = useRef<number>(Date.now());
-
-  // Assets
-  const images = useRef<{ [key: string]: HTMLImageElement }>({});
-
-  // Cargar imágenes
-  useEffect(() => {
-    const loadImage = (key: string, src: string) => {
-      const img = new Image();
-      img.src = src;
-      img.onload = () => console.log(`Imagen cargada: ${key}`);
-      img.onerror = () => console.error(`Error cargando: ${key} - ${src}`);
-      images.current[key] = img;
-    };
-
-    loadImage("knightRight", "/Asstes-VampireSurvivors/knight/knight run right.gif");
-    loadImage("knightLeft", "/Asstes-VampireSurvivors/knight/knight run left.gif");
-    loadImage("knightIdle", "/Asstes-VampireSurvivors/knight/standing knight.gif");
-    loadImage("skeletonRight", "/Asstes-VampireSurvivors/skeleton/skeleton walking right.gif");
-    loadImage("skeletonLeft", "/Asstes-VampireSurvivors/skeleton/skeleton walking left.gif");
-    loadImage("chestClosed", "/Asstes-VampireSurvivors/chest/Chestclosed.png");
-    loadImage("chestOpen", "/Asstes-VampireSurvivors/chest/Openchest.gif");
-  }, []);
 
   // Obtener roomCode y playerName
   useEffect(() => {
@@ -99,26 +75,15 @@ export default function GameScreen() {
         setDebugInfo("Obteniendo estado inicial...");
         console.log("Inicializando juego...");
 
-        // NO llamar a spawnPlayers aquí - ya se llamó en startGame()
-
-        // Obtener estado inicial
-        setDebugInfo("Obteniendo estado inicial...");
         const healthData = await getPlayersHealth(roomCode);
-
         const npcsData = await getNpcPositions(roomCode);
-        console.log("NPCs:", npcsData.npcs.length);
-
         const xpData = await getExperienceProgress(roomCode);
-        console.log("XP inicial:", xpData.progress);
 
-        // Actualizar estado con jugadores
         const playersMap = new Map<string, PlayerState>();
         healthData.forEach((p: PlayerHealthDTO) => {
-          // Si alive/maxHealth son undefined, asumir que están vivos
           const isAlive = p.alive !== undefined ? p.alive : (p.health > 0);
           const maxHp = p.maxHealth || 100;
 
-          console.log(`Jugador: ${p.playerName} - Vida: ${p.health}/${maxHp} - Vivo: ${isAlive}`);
           playersMap.set(p.playerName, {
             name: p.playerName,
             x: Math.random() * 600 + 100,
@@ -139,8 +104,6 @@ export default function GameScreen() {
 
         setDebugInfo(`Juego iniciado - ${healthData.length} jugadores, ${npcsData.npcs?.length || 0} NPCs`);
 
-        // Conectar WebSocket
-        console.log("Conectando WebSocket...");
         connect(
           roomCode,
           handleGameStateUpdate,
@@ -181,7 +144,6 @@ export default function GameScreen() {
               opened: !c.active
             }))
           }));
-          console.log(" Cofres iniciales cargados:", chestsData.length);
         }
       } catch (error) {
         console.error("Error cargando cofres:", error);
@@ -191,10 +153,8 @@ export default function GameScreen() {
     loadInitialChests();
   }, [roomCode]);
 
-
   // Handlers de WebSocket
   const handleGameStateUpdate = useCallback((data: any) => {
-    console.log(" Estado del juego actualizado:", data);
     lastStateUpdate.current = Date.now();
 
     if (data.players) {
@@ -228,7 +188,6 @@ export default function GameScreen() {
   }, []);
 
   const handleXpUpdate = useCallback((data: any) => {
-    console.log("XP actualizada:", data);
     const progress = data.progress || 0;
 
     setGameState((prev) => ({
@@ -236,9 +195,7 @@ export default function GameScreen() {
       experienceProgress: progress,
     }));
 
-    // Verificar victoria
     if (progress >= 1) {
-      console.log("¡VICTORIA!");
       setGameState((prev) => ({
         ...prev,
         victory: true,
@@ -247,76 +204,66 @@ export default function GameScreen() {
   }, []);
 
   const handleGameEvent = useCallback((data: any) => {
-      console.log("Evento de juego:", data);
+    if (data.type === "PLAYER_DIED") {
+      if (data.playerName === playerName) {
+        isAlive.current = false;
+        setDebugInfo(`Has muerto - Modo espectador`);
+      }
 
-      if (data.type === "PLAYER_DIED") {
-        console.log(`${data.playerName} ha muerto`);
-        if (data.playerName === playerName) {
-          isAlive.current = false;
-          setDebugInfo(`Has muerto - Modo espectador`);
+      setGameState((prev) => {
+        const newPlayers = new Map(prev.players);
+        const player = newPlayers.get(data.playerName);
+        if (player) {
+          player.alive = false;
+          player.health = 0;
+          newPlayers.set(data.playerName, player);
         }
+        return { ...prev, players: newPlayers };
+      });
+    }
 
-        setGameState((prev) => {
-          const newPlayers = new Map(prev.players);
-          const player = newPlayers.get(data.playerName);
-          if (player) {
-            player.alive = false;
-            player.health = 0;
-            newPlayers.set(data.playerName, player);
-          }
-          return { ...prev, players: newPlayers };
-        });
-      }
+    if (data.type === "NPC_KILLED") {
+      setGameState((prev) => ({
+        ...prev,
+        npcs: prev.npcs.filter((npc) => npc.id !== data.npcId),
+      }));
+    }
 
-      if (data.type === "NPC_KILLED") {
-        console.log(` NPC ${data.npcId} eliminado`);
-        setGameState((prev) => ({
-          ...prev,
-          npcs: prev.npcs.filter((npc) => npc.id !== data.npcId),
-        }));
-      }
+    if (data.type === "CHEST_SPAWNED") {
+      setGameState((prev) => ({
+        ...prev,
+        chests: [...prev.chests, {
+          id: data.chestId,
+          x: data.x,
+          y: data.y,
+          opened: false
+        }]
+      }));
+    }
 
-      //  Handler para cofres spawneados
-      if (data.type === "CHEST_SPAWNED") {
-        console.log(` COFRE SPAWNEADO en (${data.x}, ${data.y})`);
-        setGameState((prev) => ({
-          ...prev,
-          chests: [...prev.chests, {
-            id: data.chestId,
-            x: data.x,
-            y: data.y,
-            opened: false
-          }]
-        }));
-      }
+    if (data.type === "CHEST_OPENED") {
+      setGameState((prev) => ({
+        ...prev,
+        chests: prev.chests.map((chest) =>
+          chest.id === data.chestId ? { ...chest, opened: true } : chest
+        ),
+      }));
+    }
 
-      if (data.type === "CHEST_OPENED") {
-        console.log(`Cofre ${data.chestId} abierto por ${data.openedBy}`);
-        setGameState((prev) => ({
-          ...prev,
-          chests: prev.chests.map((chest) =>
-            chest.id === data.chestId ? { ...chest, opened: true } : chest
-          ),
-        }));
-      }
+    if (data.type === "GAME_OVER") {
+      setGameState((prev) => ({
+        ...prev,
+        gameOver: true,
+      }));
+    }
 
-      if (data.type === "GAME_OVER") {
-        console.log("GAME OVER");
-        setGameState((prev) => ({
-          ...prev,
-          gameOver: true,
-        }));
-      }
-
-      //  Handler para victoria
-      if (data.type === "GAME_WON") {
-        console.log("¡VICTORIA!");
-        setGameState((prev) => ({
-          ...prev,
-          victory: true,
-        }));
-      }
-    }, [playerName]);
+    if (data.type === "GAME_WON") {
+      setGameState((prev) => ({
+        ...prev,
+        victory: true,
+      }));
+    }
+  }, [playerName]);
 
   // Control de teclado
   useEffect(() => {
@@ -342,9 +289,8 @@ export default function GameScreen() {
   useEffect(() => {
     if (!roomCode || !playerName) return;
 
-    // Solo enviar movimiento si el jugador está vivo
     movementInterval.current = setInterval(() => {
-      if (!isAlive.current) return; // Importante: verificar dentro del interval
+      if (!isAlive.current) return;
 
       const arriba = keysPressed.current.has("w") || keysPressed.current.has("arrowup");
       const abajo = keysPressed.current.has("s") || keysPressed.current.has("arrowdown");
@@ -352,7 +298,6 @@ export default function GameScreen() {
       const derecha = keysPressed.current.has("d") || keysPressed.current.has("arrowright");
 
       if (arriba || abajo || izquierda || derecha) {
-        console.log("Enviando movimiento:", { arriba, abajo, izquierda, derecha });
         sendInput(roomCode, { playerName, arriba, abajo, izquierda, derecha });
       }
     }, 50);
@@ -364,135 +309,24 @@ export default function GameScreen() {
     };
   }, [roomCode, playerName]);
 
-  // Renderizar canvas
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const render = () => {
-      // Limpiar canvas
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Fondo semi-transparente para ver mejor
-      ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Dibujar jugadores (más grandes)
-      gameState.players.forEach((player) => {
-        const size = 80; // Tamaño aumentado
-        let img: HTMLImageElement | undefined;
-
-        if (!player.alive) {
-          ctx.globalAlpha = 0.3; // Jugadores muertos semi-transparentes
-        }
-
-        if (player.direction === "right") {
-          img = images.current.knightRight;
-        } else if (player.direction === "left") {
-          img = images.current.knightLeft;
-        } else {
-          img = images.current.knightIdle;
-        }
-
-        if (img && img.complete) {
-          ctx.drawImage(img, player.x, player.y, size, size);
-        } else {
-          // Fallback: rectángulo azul
-          ctx.fillStyle = player.alive ? "blue" : "gray";
-          ctx.fillRect(player.x, player.y, size, size);
-        }
-
-        ctx.globalAlpha = 1.0; // Restaurar opacidad
-
-        // Nombre del jugador
-        ctx.fillStyle = player.alive ? "white" : "red";
-        ctx.font = "bold 14px Arial";
-        ctx.textAlign = "center";
-        ctx.fillText(player.name, player.x + size / 2, player.y - 20);
-
-        // Barra de vida sobre el jugador
-        const barWidth = size;
-        const barHeight = 8;
-        const healthPercent = player.health / player.maxHealth;
-
-        ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-        ctx.fillRect(player.x, player.y - 12, barWidth, barHeight);
-
-        ctx.fillStyle = "red";
-        ctx.fillRect(player.x, player.y - 12, barWidth, barHeight);
-
-        ctx.fillStyle = "green";
-        ctx.fillRect(player.x, player.y - 12, barWidth * healthPercent, barHeight);
-      });
-
-      // Dibujar NPCs (más grandes)
-      gameState.npcs.forEach((npc) => {
-        const size = 70;
-        const img = images.current.skeletonRight;
-
-        if (img && img.complete) {
-          ctx.drawImage(img, npc.x, npc.y, size, size);
-        } else {
-          // Fallback: rectángulo rojo
-          ctx.fillStyle = "red";
-          ctx.fillRect(npc.x, npc.y, size, size);
-        }
-
-        // Barra de vida del NPC
-        const barWidth = size;
-        const barHeight = 6;
-        const healthPercent = npc.health / 100; // Asumiendo 100 HP max
-
-        ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-        ctx.fillRect(npc.x, npc.y - 10, barWidth, barHeight);
-
-        ctx.fillStyle = "darkred";
-        ctx.fillRect(npc.x, npc.y - 10, barWidth, barHeight);
-
-        ctx.fillStyle = "orange";
-        ctx.fillRect(npc.x, npc.y - 10, barWidth * healthPercent, barHeight);
-      });
-
-      // Dibujar cofres
-      gameState.chests.forEach((chest) => {
-        const size = 50;
-        const img = chest.opened ? images.current.chestOpen : images.current.chestClosed;
-
-        if (img && img.complete) {
-          ctx.drawImage(img, chest.x, chest.y, size, size);
-        } else {
-          ctx.fillStyle = chest.opened ? "gold" : "brown";
-          ctx.fillRect(chest.x, chest.y, size, size);
-        }
-      });
-
-      requestAnimationFrame(render);
-    };
-
-    render();
-  }, [gameState]);
-
-  // Verificar si todos los jugadores han muerto
-  useEffect(() => {
-    const allDead = Array.from(gameState.players.values()).every((p) => !p.alive);
-    if (allDead && gameState.players.size > 0 && !gameState.gameOver) {
-      console.log("Todos los jugadores han muerto");
-      setGameState((prev) => ({ ...prev, gameOver: true }));
+  // Función para obtener sprite correcto
+  const getPlayerSprite = (direction: string) => {
+    switch(direction) {
+      case "right": return "/Asstes-VampireSurvivors/knight/knight run right.gif";
+      case "left": return "/Asstes-VampireSurvivors/knight/knight run left.gif";
+      default: return "/Asstes-VampireSurvivors/knight/standing knight.gif";
     }
-  }, [gameState.players, gameState.gameOver]);
+  };
 
   return (
     <main
-      className="h-screen w-screen bg-cover bg-center flex flex-col items-center justify-between relative"
+      className="h-screen w-screen bg-cover bg-center flex flex-col items-center justify-between relative overflow-hidden"
       style={{
         backgroundImage: "url('/assets/WhatsApp Image 2025-10-26 at 12.25.06 PM.jpeg')",
       }}
     >
       {/* Barra de experiencia */}
-      <div className="absolute top-0 w-full p-4">
+      <div className="absolute top-0 w-full p-4 z-20">
         <div className="w-full bg-gray-800 h-10 rounded-full border-2 border-yellow-600 overflow-hidden shadow-lg">
           <div
             className="h-full bg-gradient-to-r from-yellow-400 to-yellow-600 transition-all duration-300"
@@ -505,7 +339,7 @@ export default function GameScreen() {
       </div>
 
       {/* Debug info */}
-      <div className="absolute top-16 right-4 bg-black/80 p-3 rounded-lg border border-blue-500 text-xs text-white max-w-xs">
+      <div className="absolute top-16 right-4 bg-black/80 p-3 rounded-lg border border-blue-500 text-xs text-white max-w-xs z-20">
         <div>🎮 Sala: {roomCode}</div>
         <div>👤 Jugador: {playerName}</div>
         <div>👥 Jugadores: {gameState.players.size}</div>
@@ -514,8 +348,8 @@ export default function GameScreen() {
         <div className="mt-2 text-yellow-400">{debugInfo}</div>
       </div>
 
-      {/* Vida de los jugadores - esquina superior izquierda */}
-      <div className="absolute top-16 left-4 bg-black/70 p-4 rounded-lg border-2 border-yellow-600 shadow-xl">
+      {/* Vida de los jugadores */}
+      <div className="absolute top-16 left-4 bg-black/70 p-4 rounded-lg border-2 border-yellow-600 shadow-xl z-20">
         <h3 className="text-yellow-400 font-bold mb-3 text-lg">Jugadores</h3>
         {Array.from(gameState.players.values()).map((player) => (
           <div key={player.name} className="text-white mb-3">
@@ -539,14 +373,104 @@ export default function GameScreen() {
         ))}
       </div>
 
-      {/* Canvas del juego */}
+      {/* ÁREA DE JUEGO CON ENTIDADES HTML */}
       <div className="flex-1 w-full flex items-center justify-center">
-        <canvas
-          ref={canvasRef}
-          width={800}
-          height={600}
-          className="border-4 border-yellow-600 rounded-xl shadow-[0_0_30px_rgba(255,215,0,0.5)] bg-black/50"
-        ></canvas>
+        <div
+          className="relative border-4 border-yellow-600 rounded-xl shadow-[0_0_30px_rgba(255,215,0,0.5)] bg-black/50"
+          style={{ width: 800, height: 600 }}
+        >
+          {/* Renderizar jugadores como elementos HTML */}
+          {Array.from(gameState.players.values()).map((player) => (
+            <div
+              key={player.name}
+              className="absolute transition-all duration-75"
+              style={{
+                left: `${player.x}px`,
+                top: `${player.y}px`,
+                width: '80px',
+                height: '80px',
+                opacity: player.alive ? 1 : 0.3,
+              }}
+            >
+              {/* GIF animado del jugador */}
+              <img
+                src={getPlayerSprite(player.direction)}
+                alt={player.name}
+                className="w-full h-full object-contain"
+                style={{ imageRendering: 'pixelated' }}
+              />
+
+              {/* Nombre */}
+              <div
+                className="absolute -top-8 left-1/2 -translate-x-1/2 text-white font-bold text-sm whitespace-nowrap"
+                style={{ textShadow: '2px 2px 4px black' }}
+              >
+                {player.name}
+              </div>
+
+              {/* Barra de vida */}
+              <div className="absolute -top-4 left-0 w-full h-2 bg-black/70 rounded">
+                <div
+                  className="h-full bg-green-500 rounded transition-all"
+                  style={{ width: `${(player.health / player.maxHealth) * 100}%` }}
+                ></div>
+              </div>
+            </div>
+          ))}
+
+          {/* Renderizar NPCs como elementos HTML */}
+          {gameState.npcs.map((npc) => (
+            <div
+              key={npc.id}
+              className="absolute transition-all duration-75"
+              style={{
+                left: `${npc.x}px`,
+                top: `${npc.y}px`,
+                width: '70px',
+                height: '70px',
+              }}
+            >
+              {/* GIF animado del NPC */}
+              <img
+                src="/Asstes-VampireSurvivors/skeleton/skeleton walking right.gif"
+                alt="skeleton"
+                className="w-full h-full object-contain"
+                style={{ imageRendering: 'pixelated' }}
+              />
+
+              {/* Barra de vida */}
+              <div className="absolute -top-3 left-0 w-full h-1.5 bg-black/70 rounded">
+                <div
+                  className="h-full bg-orange-500 rounded transition-all"
+                  style={{ width: `${(npc.health / 100) * 100}%` }}
+                ></div>
+              </div>
+            </div>
+          ))}
+
+          {/* Renderizar cofres */}
+          {gameState.chests.map((chest) => (
+            <div
+              key={chest.id}
+              className="absolute"
+              style={{
+                left: `${chest.x}px`,
+                top: `${chest.y}px`,
+                width: '50px',
+                height: '50px',
+              }}
+            >
+              <img
+                src={chest.opened
+                  ? "/Asstes-VampireSurvivors/chest/Openchest.gif"
+                  : "/Asstes-VampireSurvivors/chest/Chestclosed.png"
+                }
+                alt="chest"
+                className="w-full h-full object-contain"
+              />
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Overlay de Game Over */}
@@ -582,7 +506,7 @@ export default function GameScreen() {
       )}
 
       {/* Controles */}
-      <div className="absolute bottom-20 right-4 bg-black/70 p-4 rounded-lg border-2 border-yellow-600">
+      <div className="absolute bottom-20 right-4 bg-black/70 p-4 rounded-lg border-2 border-yellow-600 z-20">
         <p className="text-white font-semibold mb-1">Controles:</p>
         <p className="text-white text-sm">WASD o Flechas para mover</p>
         {!isAlive.current && (
@@ -591,7 +515,7 @@ export default function GameScreen() {
       </div>
 
       {/* Botón para salir */}
-      <div className="pb-4">
+      <div className="pb-4 z-20">
         <button
           onClick={() => router.push("/initialScreen")}
           className="px-8 py-4 bg-gradient-to-b from-red-700 to-red-900 text-white text-xl font-bold rounded-xl border-2 border-black shadow-[0_0_15px_rgba(255,0,0,0.6)] hover:scale-105 transition-all duration-300"
