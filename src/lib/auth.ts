@@ -106,7 +106,7 @@ export function clearUserFromLocalStorage() {
 }
 
 /**
- * Obtener información del jugador desde localStorage
+ * Obtener información del jugador desde localStorage.
  */
 export function getPlayerFromLocalStorage() {
   const stored = localStorage.getItem("player");
