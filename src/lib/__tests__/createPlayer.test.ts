@@ -13,7 +13,7 @@ describe("createPlayer", () => {
     const result = await createPlayer("Juan");
 
     expect(mockedAxios.post).toHaveBeenCalledWith(
-      "https://vampiremultiplesurvivors-h3gfb9gsf4bscre2.canadacentral-01.azurewebsites.net/api/players/create",
+      "http://4.239.139.143/api/players/create",
       { playerName: "Juan" }
     );
 
