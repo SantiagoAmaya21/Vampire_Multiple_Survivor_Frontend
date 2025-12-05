@@ -1,7 +1,7 @@
 // src/lib/gamePlay.ts
 import axios from "axios";
 
-const API_URL = "https://vampiremultiplesurvivors-h3gfb9gsf4bscre2.canadacentral-01.azurewebsites.net/api";
+const API_URL = "http://4.239.139.143/api";
 
 // Configuración para incluir credenciales
 const axiosConfig = {

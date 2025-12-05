@@ -8,7 +8,7 @@ export function connect(roomCode: string, onState: (data: any) => void, onXp: (d
   if (client && client.connected) return client;
 
   client = new Client({
-    webSocketFactory: () => new SockJS("https://vampiremultiplesurvivors-h3gfb9gsf4bscre2.canadacentral-01.azurewebsites.net/ws-game"),
+    webSocketFactory: () => new SockJS("http://4.239.139.143/ws-game"),
     reconnectDelay: 5000,
     debug: (str) => {
       // console.log(str);

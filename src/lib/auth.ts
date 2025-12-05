@@ -1,7 +1,7 @@
 // src/lib/auth.ts
 import axios from "axios";
 
-const BACKEND_URL = "https://vampiremultiplesurvivors-h3gfb9gsf4bscre2.canadacentral-01.azurewebsites.net";
+const BACKEND_URL = "http://4.239.139.143";
 const API_URL = `${BACKEND_URL}/api/auth`;
 
 export interface UserInfo {

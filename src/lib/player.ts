@@ -1,9 +1,9 @@
 import axios from "axios";
 
-const API_BASE = "https://vampiremultiplesurvivors-h3gfb9gsf4bscre2.canadacentral-01.azurewebsites.net/";
+const API_BASE = "http://4.239.139.143";
 
 export const createPlayer = async (playerName: string) => {
-  return axios.post("https://vampiremultiplesurvivors-h3gfb9gsf4bscre2.canadacentral-01.azurewebsites.net/api/players/create", {
+  return axios.post("http://4.239.139.143/api/players/create", {
     playerName: playerName
   });
 };
